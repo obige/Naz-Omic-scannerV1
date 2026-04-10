@@ -1,9 +1,816 @@
 <!DOCTYPE html>
 <html lang="en">
+<head><!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NAZ OMIC Scanner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#060a14;color:#e2e8f0;font-family:'DM Sans',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0a0f1a}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+.page{display:none;min-height:100vh;position:relative;z-index:1}.page.active{display:block;animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(0,220,130,.3)}50%{box-shadow:0 0 60px rgba(0,220,130,.5)}}
+@keyframes candleFade{from{opacity:0;transform:scaleY(0)}to{opacity:.25;transform:scaleY(1)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+#gridBg{position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(rgba(0,220,130,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,130,.03) 1px,transparent 1px);background-size:60px 60px}
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;min-height:100vh}
+.tag{font-size:13px;letter-spacing:8px;color:#00dc82;font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.logo{font-size:clamp(50px,9vw,100px);font-weight:800;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#fff,#00dc82,#00a060);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:12px}
+.subtitle{font-size:13px;color:#00dc82;letter-spacing:6px;font-family:'JetBrains Mono',monospace;margin-bottom:44px}
+.candle-row{display:flex;gap:4px;align-items:flex-end;justify-content:center;height:85px;margin-bottom:44px;overflow:hidden}
+.candle{width:6px;border-radius:2px;position:relative;animation:candleFade .7s ease both;transform-origin:bottom}
+.wick{position:absolute;left:50%;transform:translateX(-50%);width:1px;opacity:.5}.wt{top:-30%;height:30%}.wb{bottom:-20%;height:20%}
+.desc-main{max-width:680px;font-size:16px;line-height:1.9;color:#94a3b8;margin-bottom:18px}.desc-main span{color:#00dc82}
+.desc-sub{max-width:680px;font-size:14px;line-height:1.9;color:#64748b;margin-bottom:40px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;max-width:720px;width:100%;margin-bottom:48px}
+.feat{background:rgba(0,220,130,.04);border:1px solid rgba(0,220,130,.1);border-radius:12px;padding:22px 14px;text-align:center;transition:all .3s}.feat:hover{background:rgba(0,220,130,.08);border-color:rgba(0,220,130,.3);transform:translateY(-4px)}
+.fi{font-size:26px;color:#00dc82;margin-bottom:6px}.ft{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:3px;font-family:'Space Grotesk',sans-serif}.fd{font-size:11px;color:#64748b}
+.cta{background:linear-gradient(135deg,#00dc82,#00a060);color:#0a0f1a;border:none;border-radius:50px;padding:18px 56px;font-size:16px;font-weight:800;font-family:'Space Grotesk',sans-serif;letter-spacing:3px;text-transform:uppercase;cursor:pointer;box-shadow:0 0 40px rgba(0,220,130,.3);transition:all .3s;animation:pulse 2.5s 1s infinite}.cta:hover{transform:scale(1.05)}
+.ver{margin-top:18px;font-size:11px;color:#334155;font-family:'JetBrains Mono',monospace}
+.bbtn{background:none;border:1px solid rgba(0,220,130,.2);color:#00dc82;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;transition:all .2s}.bbtn:hover{background:rgba(0,220,130,.1)}
+.dtitle{font-size:22px;font-weight:800;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#fff,#00dc82);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.panel{max-width:750px;margin:0 auto;background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(10,15,30,.98));border:1px solid rgba(0,220,130,.12);border-radius:16px;overflow:hidden;box-shadow:0 0 60px rgba(0,220,130,.06),0 4px 30px rgba(0,0,0,.4)}
+.phdr{background:linear-gradient(90deg,rgba(0,220,130,.08),rgba(0,220,130,.02));padding:14px 20px;border-bottom:1px solid rgba(0,220,130,.1);font-size:11px;font-weight:700;color:#00dc82;font-family:'JetBrains Mono',monospace;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}
+.stag{font-size:9px;padding:2px 8px;border-radius:4px;font-weight:700}.stag.on{background:rgba(0,220,130,.15);color:#00dc82}
+.brow{padding:12px 20px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.brow .lbl{font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;min-width:48px}
+.sb{padding:6px 15px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .2s;border:1px solid rgba(100,116,139,.3);background:rgba(30,41,59,.5);color:#64748b}
+.sb.on{border-color:#00dc82;background:rgba(0,220,130,.15);color:#00dc82;box-shadow:0 0 12px rgba(0,220,130,.2)}
+.iline{padding:8px 20px;font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(0,220,130,.08)}
+.sline{padding:10px 20px;font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(0,220,130,.08)}.sline em{font-style:normal;color:#00dc82;font-weight:700}
+.chdr{display:grid;grid-template-columns:1.3fr .6fr .6fr .6fr .5fr .7fr;padding:10px 20px;font-size:10px;font-weight:700;color:#475569;font-family:'JetBrains Mono',monospace;letter-spacing:1px;border-bottom:1px solid rgba(0,220,130,.06)}
+.drow{display:grid;grid-template-columns:1.3fr .6fr .6fr .6fr .5fr .7fr;padding:10px 20px;font-size:12px;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(30,41,59,.5);transition:background .2s}
+.drow:nth-child(even){background:rgba(15,23,42,.4)}.drow:hover{background:rgba(0,220,130,.04)!important}
+.sym{color:#e2e8f0;font-weight:600}.g{color:#00dc82;font-weight:700}.r{color:#ff4466;font-weight:700}
+.nr{padding:30px 20px;text-align:center;font-size:12px;color:#334155;font-family:'JetBrains Mono',monospace}
+.ob{padding:4px 14px;border-radius:5px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,100,180,.3);color:#93c5fd;border:1px solid rgba(0,100,180,.4);cursor:pointer;transition:all .2s}.ob:hover{background:rgba(0,100,180,.5);color:#fff}
+.pfooter{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(15,23,42,.6);border-top:1px solid rgba(0,220,130,.08)}
+.pi{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace}
+.rb{padding:6px 16px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,130,60,.3);color:#00dc82;border:1px solid rgba(0,220,130,.3);cursor:pointer;transition:all .2s}.rb:hover{background:rgba(0,130,60,.5)}
+.cnote{max-width:750px;margin:28px auto;padding:14px 20px;background:rgba(0,220,130,.03);border:1px solid rgba(0,220,130,.08);border-radius:12px;font-size:11px;color:#475569;font-family:'JetBrains Mono',monospace;line-height:1.8}.cnote b{color:#00dc82}
+.scanning{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:#475569;font-family:'JetBrains Mono',monospace;font-size:12px}
+.spinner{width:18px;height:18px;border:2px solid rgba(0,220,130,.2);border-top-color:#00dc82;border-radius:50%;animation:spin .8s linear infinite}
+.price{font-size:10px;color:#475569}
+/* Chart page */
+.chartpage{padding:20px}
+.ct-top{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto 16px;flex-wrap:wrap;gap:10px}
+.ct-sym{font-size:24px;font-weight:800;font-family:'Space Grotesk',sans-serif;color:#e2e8f0;display:flex;align-items:center;gap:12px}
+.dtag{font-size:11px;padding:4px 14px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.dtag.buy{background:rgba(0,220,130,.15);color:#00dc82;border:1px solid rgba(0,220,130,.3)}.dtag.sell{background:rgba(255,68,102,.15);color:#ff4466;border:1px solid rgba(255,68,102,.3)}
+.ct-box{max-width:1100px;margin:0 auto;background:rgba(10,15,26,.95);border:1px solid rgba(0,220,130,.1);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,.4)}
+#tvChart{width:100%;height:550px}
+@media(max-width:600px){.chdr,.drow{grid-template-columns:1.2fr .5fr .5fr .5fr .4fr .6fr;font-size:10px;padding:8px 12px}#tvChart{height:400px}.ct-sym{font-size:18px}}
+</style>
+</head>
+<body>
+<div id="gridBg"></div>
+
+<!-- PAGE 1: LANDING -->
+<div id="p1" class="page active landing">
+  <div class="tag">━━━ Scanner System ━━━</div>
+  <div class="logo">NAZ OMIC</div>
+  <div class="subtitle">MULTI-ASSET MARKET SCANNER</div>
+  <div class="candle-row" id="candleRow"></div>
+  <p class="desc-main">NAZ OMIC is an advanced multi-asset market scanner. It automatically scans <span>Forex & Metals</span>, <span>Crypto</span>, and <span>Stocks</span> to identify high-probability trade setups using a proprietary multi-timeframe analysis system.</p>
+  <p class="desc-sub">The scanner detects context bias through Arrow & EMA alignment, confirms liquidity patterns, identifies sweep candles, validates entry signals, and sets protected levels — all filtered through the Ment Block system. No setup required — just scan and trade.</p>
+  <div class="features">
+    <div class="feat"><div class="fi">◎</div><div class="ft">Multi-Asset</div><div class="fd">Forex, Crypto & Stocks</div></div>
+    <div class="feat"><div class="fi">◈</div><div class="ft">4 Templates</div><div class="fd">MN · W1 · D1 · H4</div></div>
+    <div class="feat"><div class="fi">◉</div><div class="ft">Smart Filter</div><div class="fd">Arrow + EMA + Ment</div></div>
+    <div class="feat"><div class="fi">◇</div><div class="ft">Live Charts</div><div class="fd">Full TradingView charts</div></div>
+  </div>
+  <button class="cta" onclick="goTo('p2')">Get Started →</button>
+  <div class="ver">v3.15 · No setup required</div>
+</div>
+
+<!-- PAGE 2: DASHBOARD -->
+<div id="p2" class="page" style="padding:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <button class="bbtn" onclick="goTo('p1')">← Home</button>
+    <div class="dtitle">NAZ OMIC SCANNER</div>
+    <div style="font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace">v3.15</div>
+  </div>
+  <div class="panel">
+    <div class="phdr"><span>◈ NAZ OMIC SCANNER</span><span class="stag on">LIVE</span></div>
+    <div class="brow"><span class="lbl">Asset:</span><div id="abtns"></div></div>
+    <div class="brow" style="padding-top:6px;padding-bottom:12px"><span class="lbl">Tpl:</span><div id="tbtns"></div></div>
+    <div class="iline" id="tfi"></div>
+    <div class="sline" id="stl"></div>
+    <div class="chdr"><div>SYMBOL</div><div>DIR</div><div>MENT</div><div>STATUS</div><div>PRICE</div><div>CHART</div></div>
+    <div id="rows"></div>
+    <div class="pfooter"><div></div><span class="pi" id="pgi"></span><button class="rb" onclick="doScan(true)">REFRESH</button></div>
+  </div>
+  <div class="cnote" id="note"><b>⚡</b> Click an Asset and Template above, then wait for the scan. Results are cached for 2 minutes.</div>
+</div>
+
+<!-- PAGE 3: CHART (TradingView) -->
+<div id="p3" class="page chartpage">
+  <div class="ct-top">
+    <button class="bbtn" onclick="goTo('p2')">← Dashboard</button>
+    <div class="ct-sym" id="csym"></div>
+    <div style="font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace" id="cmeta"></div>
+  </div>
+  <div class="ct-box">
+    <div id="tvChart"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════ CONFIG ═══════════
+const API = window.location.origin; // Same server
+
+const TFM={Monthly:"MN1 / D1 / MN1 / W1",Weekly:"W1 / H4 / W1 / D1",Daily:"D1 / H1 / D1 / H4","4HR":"H4 / M15 / H4 / M30",Custom:"—"};
+
+// TradingView symbol mapping
+const TV_MAP={
+  EURUSD:"FX:EURUSD",GBPUSD:"FX:GBPUSD",USDJPY:"FX:USDJPY",AUDUSD:"FX:AUDUSD",NZDUSD:"FX:NZDUSD",
+  USDCAD:"FX:USDCAD",USDCHF:"FX:USDCHF",EURJPY:"FX:EURJPY",GBPJPY:"FX:GBPJPY",EURGBP:"FX:EURGBP",
+  EURAUD:"FX:EURAUD",GBPAUD:"FX:GBPAUD",AUDJPY:"FX:AUDJPY",CADJPY:"FX:CADJPY",CHFJPY:"FX:CHFJPY",
+  XAUUSD:"TVC:GOLD",XAGUSD:"TVC:SILVER",
+  BTCUSD:"CRYPTO:BTCUSD",ETHUSD:"CRYPTO:ETHUSD",SOLUSD:"CRYPTO:SOLUSD",XRPUSD:"CRYPTO:XRPUSD",
+  ADAUSD:"CRYPTO:ADAUSD",DOTUSD:"CRYPTO:DOTUSD",AVAXUSD:"CRYPTO:AVAXUSD",LINKUSD:"CRYPTO:LINKUSD",
+  MATICUSD:"CRYPTO:MATICUSD",DOGEUSD:"CRYPTO:DOGEUSD",
+  AAPL:"NASDAQ:AAPL",MSFT:"NASDAQ:MSFT",GOOGL:"NASDAQ:GOOGL",AMZN:"NASDAQ:AMZN",TSLA:"NASDAQ:TSLA",
+  NVDA:"NASDAQ:NVDA",META:"NASDAQ:META",NFLX:"NASDAQ:NFLX",AMD:"NASDAQ:AMD",BA:"NYSE:BA",
+  DIS:"NYSE:DIS",JPM:"NYSE:JPM",V:"NYSE:V",MA:"NYSE:MA",PYPL:"NASDAQ:PYPL",
+};
+
+let cA="Forex&Metals",cT="Weekly",scanning=false;
+
+// Save/load preferences
+function savePrefs(){try{localStorage.setItem('naz_prefs',JSON.stringify({a:cA,t:cT}));}catch(e){}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem('naz_prefs'));if(p){cA=p.a||cA;cT=p.t||cT;}}catch(e){}}
+loadPrefs();
+
+function $(id){return document.getElementById(id);}
+function goTo(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');if(id==='p2')doScan();window.scrollTo(0,0);}
+
+// ═══════════ DASHBOARD ═══════════
+function setAsset(a){cA=a;savePrefs();doScan();}
+function setTpl(t){cT=t;savePrefs();doScan();}
+
+async function doScan(force){
+  const assets=["Forex&Metals","Crypto","Stocks"],aL=["FOREX","CRYPTO","STOCKS"];
+  const tpls=["Monthly","Weekly","Daily","4HR"],tL=["MN","W1","D1","H4"];
+
+  // Render buttons
+  let ab='';assets.forEach((a,i)=>{ab+=`<button class="sb ${a===cA?'on':''}" onclick="setAsset('${a}')">${aL[i]}</button> `;});$('abtns').innerHTML=ab;
+  let tb='';tpls.forEach((t,i)=>{tb+=`<button class="sb ${t===cT?'on':''}" onclick="setTpl('${t}')">${tL[i]}</button> `;});$('tbtns').innerHTML=tb;
+  $('tfi').textContent=`CTF / ETF / ArrowCtx / Val: ${TFM[cT]||'—'}`;
+
+  // Show loading
+  $('rows').innerHTML=`<div class="scanning"><div class="spinner"></div>Scanning ${cA} with ${cT} template...</div>`;
+  $('stl').innerHTML=`Scanning...`;
+  $('pgi').textContent='';
+
+  // Fetch from API
+  try{
+    const url=`${API}/api/scan?asset=${encodeURIComponent(cA)}&template=${encodeURIComponent(cT)}${force?'&force=1':''}`;
+    const r=await fetch(url);const d=await r.json();
+
+    if(d.error){$('rows').innerHTML=`<div class="nr">${d.error}</div>`;return;}
+
+    // If server is still scanning, show progress and auto-retry
+    if(d.scanning && d.signals.length === 0){
+      $('rows').innerHTML=`<div class="scanning"><div class="spinner"></div>Scanning ${d.total_symbols||0} symbols... This takes 30-60 sec on first load.</div>`;
+      $('stl').innerHTML=`<em>Scanning in progress...</em>`;
+      $('note').innerHTML=`<b>⏳</b> First scan takes a moment. Auto-refreshing in 15 seconds...`;
+      setTimeout(()=>doScan(false), 15000);
+      return;
+    }
+
+    const sigs=d.signals||[];
+    $('stl').innerHTML=`Symbols: <em>${d.total_symbols||0}</em> · Qualifying: <em>${sigs.length}</em> · Last: ${d.last_scan||'—'}`;
+
+    let rh='';
+    if(!sigs.length){rh='<div class="nr">No qualifying pairs found for this combination</div>';}
+    else{sigs.forEach((s,i)=>{
+      const dc=s.direction==='BUY'?'g':'r',mc=s.ment==='BULL'?'g':s.ment==='BEAR'?'r':'';
+      rh+=`<div class="drow" style="animation:slideIn .4s ${i*.06}s ease both">
+        <div class="sym">${s.symbol}</div>
+        <div class="${dc}">${s.direction}</div>
+        <div class="${mc}">${s.ment}</div>
+        <div class="g">${s.status}</div>
+        <div class="price">${s.price||''}</div>
+        <div><button class="ob" onclick="openChart('${s.symbol}','${s.direction}','${s.ment}')">CHART</button></div>
+      </div>`;});}
+    $('rows').innerHTML=rh;
+    $('pgi').textContent=sigs.length?`${sigs.length} result${sigs.length>1?'s':''}`:'0';
+    const note = d._note ? ` (${d._note})` : '';
+    $('note').innerHTML=`<b>⚡</b> Scanned ${d.total_symbols||0} symbols. ${sigs.length} qualifying. Results refresh every 3 min.${note}`;
+  }catch(e){
+    $('rows').innerHTML=`<div class="nr">Scanner is waking up... please wait 30 seconds and click REFRESH.</div>`;
+    $('note').innerHTML=`<b>⏳ Starting up:</b> Free hosting sleeps after inactivity. The server is booting now. Try again in 30 seconds.`;
+    setTimeout(()=>doScan(false), 20000);
+  }
+}
+
+// ═══════════ CHART (TradingView Widget) ═══════════
+function openChart(sym,dir,ment){
+  goTo('p3');
+  $('csym').innerHTML=`${sym} <span class="dtag ${dir==='BUY'?'buy':'sell'}">${dir}</span>`;
+  $('cmeta').textContent=`Ment: ${ment} · ${cA} · ${cT}`;
+
+  const tvSym=TV_MAP[sym]||sym;
+  const container=$('tvChart');
+  container.innerHTML='';
+
+  // Embed TradingView Advanced Chart Widget (free)
+  const script=document.createElement('script');
+  script.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async=true;
+  script.innerHTML=JSON.stringify({
+    autosize:true,
+    symbol:tvSym,
+    interval:"D",
+    timezone:"Etc/UTC",
+    theme:"dark",
+    style:"1",
+    locale:"en",
+    backgroundColor:"rgba(10,15,26,1)",
+    gridColor:"rgba(0,220,130,0.04)",
+    hide_side_toolbar:false,
+    allow_symbol_change:true,
+    calendar:false,
+    support_host:"https://www.tradingview.com",
+    studies:["MAExp@tv-basicstudies","MAExp@tv-basicstudies"],
+    overrides:{
+      "mainSeriesProperties.candleStyle.upColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.downColor":"#ff4466",
+      "mainSeriesProperties.candleStyle.borderUpColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.borderDownColor":"#ff4466",
+      "mainSeriesProperties.candleStyle.wickUpColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.wickDownColor":"#ff4466",
+    },
+    width:"100%",
+    height:"100%",
+  });
+
+  const wrapper=document.createElement('div');
+  wrapper.className='tradingview-widget-container';
+  wrapper.style.height='100%';
+  wrapper.style.width='100%';
+  const inner=document.createElement('div');
+  inner.className='tradingview-widget-container__widget';
+  inner.style.height='calc(100% - 32px)';
+  inner.style.width='100%';
+  wrapper.appendChild(inner);
+  wrapper.appendChild(script);
+  container.appendChild(wrapper);
+}
+
+// ═══════════ INIT ═══════════
+(()=>{const r=$('candleRow');let h='';for(let i=0;i<45;i++){const ht=18+Math.random()*55,bull=Math.random()>.42,c=bull?'#00dc82':'#ff4466';h+=`<div class="candle" style="height:${ht}px;background:${c};animation-delay:${i*.03}s"><div class="wick wt" style="background:${c}"></div><div class="wick wb" style="background:${c}"></div></div>`;}r.innerHTML=h;})();
+</script>
+</body>
+</html>
+
+<meta charset="UTF-8"><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAZ OMIC Scanner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#060a14;color:#e2e8f0;font-family:'DM Sans',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0a0f1a}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+.page{display:none;min-height:100vh;position:relative;z-index:1}.page.active{display:block;animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(0,220,130,.3)}50%{box-shadow:0 0 60px rgba(0,220,130,.5)}}
+@keyframes candleFade{from{opacity:0;transform:scaleY(0)}to{opacity:.25;transform:scaleY(1)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+#gridBg{position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(rgba(0,220,130,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,130,.03) 1px,transparent 1px);background-size:60px 60px}
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;min-height:100vh}
+.tag{font-size:13px;letter-spacing:8px;color:#00dc82;font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.logo{font-size:clamp(50px,9vw,100px);font-weight:800;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#fff,#00dc82,#00a060);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:12px}
+.subtitle{font-size:13px;color:#00dc82;letter-spacing:6px;font-family:'JetBrains Mono',monospace;margin-bottom:44px}
+.candle-row{display:flex;gap:4px;align-items:flex-end;justify-content:center;height:85px;margin-bottom:44px;overflow:hidden}
+.candle{width:6px;border-radius:2px;position:relative;animation:candleFade .7s ease both;transform-origin:bottom}
+.wick{position:absolute;left:50%;transform:translateX(-50%);width:1px;opacity:.5}.wt{top:-30%;height:30%}.wb{bottom:-20%;height:20%}
+.desc-main{max-width:680px;font-size:16px;line-height:1.9;color:#94a3b8;margin-bottom:18px}.desc-main span{color:#00dc82}
+.desc-sub{max-width:680px;font-size:14px;line-height:1.9;color:#64748b;margin-bottom:40px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;max-width:720px;width:100%;margin-bottom:48px}
+.feat{background:rgba(0,220,130,.04);border:1px solid rgba(0,220,130,.1);border-radius:12px;padding:22px 14px;text-align:center;transition:all .3s}.feat:hover{background:rgba(0,220,130,.08);border-color:rgba(0,220,130,.3);transform:translateY(-4px)}
+.fi{font-size:26px;color:#00dc82;margin-bottom:6px}.ft{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:3px;font-family:'Space Grotesk',sans-serif}.fd{font-size:11px;color:#64748b}
+.cta{background:linear-gradient(135deg,#00dc82,#00a060);color:#0a0f1a;border:none;border-radius:50px;padding:18px 56px;font-size:16px;font-weight:800;font-family:'Space Grotesk',sans-serif;letter-spacing:3px;text-transform:uppercase;cursor:pointer;box-shadow:0 0 40px rgba(0,220,130,.3);transition:all .3s;animation:pulse 2.5s 1s infinite}.cta:hover{transform:scale(1.05)}
+.ver{margin-top:18px;font-size:11px;color:#334155;font-family:'JetBrains Mono',monospace}
+.bbtn{background:none;border:1px solid rgba(0,220,130,.2);color:#00dc82;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;transition:all .2s}.bbtn:hover{background:rgba(0,220,130,.1)}
+.dtitle{font-size:22px;font-weight:800;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#fff,#00dc82);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.panel{max-width:750px;margin:0 auto;background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(10,15,30,.98));border:1px solid rgba(0,220,130,.12);border-radius:16px;overflow:hidden;box-shadow:0 0 60px rgba(0,220,130,.06),0 4px 30px rgba(0,0,0,.4)}
+.phdr{background:linear-gradient(90deg,rgba(0,220,130,.08),rgba(0,220,130,.02));padding:14px 20px;border-bottom:1px solid rgba(0,220,130,.1);font-size:11px;font-weight:700;color:#00dc82;font-family:'JetBrains Mono',monospace;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}
+.stag{font-size:9px;padding:2px 8px;border-radius:4px;font-weight:700}.stag.on{background:rgba(0,220,130,.15);color:#00dc82}
+.brow{padding:12px 20px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.brow .lbl{font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;min-width:48px}
+.sb{padding:6px 15px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .2s;border:1px solid rgba(100,116,139,.3);background:rgba(30,41,59,.5);color:#64748b}
+.sb.on{border-color:#00dc82;background:rgba(0,220,130,.15);color:#00dc82;box-shadow:0 0 12px rgba(0,220,130,.2)}
+.iline{padding:8px 20px;font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(0,220,130,.08)}
+.sline{padding:10px 20px;font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(0,220,130,.08)}.sline em{font-style:normal;color:#00dc82;font-weight:700}
+.chdr{display:grid;grid-template-columns:1.3fr .6fr .6fr .6fr .5fr .7fr;padding:10px 20px;font-size:10px;font-weight:700;color:#475569;font-family:'JetBrains Mono',monospace;letter-spacing:1px;border-bottom:1px solid rgba(0,220,130,.06)}
+.drow{display:grid;grid-template-columns:1.3fr .6fr .6fr .6fr .5fr .7fr;padding:10px 20px;font-size:12px;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(30,41,59,.5);transition:background .2s}
+.drow:nth-child(even){background:rgba(15,23,42,.4)}.drow:hover{background:rgba(0,220,130,.04)!important}
+.sym{color:#e2e8f0;font-weight:600}.g{color:#00dc82;font-weight:700}.r{color:#ff4466;font-weight:700}
+.nr{padding:30px 20px;text-align:center;font-size:12px;color:#334155;font-family:'JetBrains Mono',monospace}
+.ob{padding:4px 14px;border-radius:5px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,100,180,.3);color:#93c5fd;border:1px solid rgba(0,100,180,.4);cursor:pointer;transition:all .2s}.ob:hover{background:rgba(0,100,180,.5);color:#fff}
+.pfooter{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(15,23,42,.6);border-top:1px solid rgba(0,220,130,.08)}
+.pi{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace}
+.rb{padding:6px 16px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,130,60,.3);color:#00dc82;border:1px solid rgba(0,220,130,.3);cursor:pointer;transition:all .2s}.rb:hover{background:rgba(0,130,60,.5)}
+.cnote{max-width:750px;margin:28px auto;padding:14px 20px;background:rgba(0,220,130,.03);border:1px solid rgba(0,220,130,.08);border-radius:12px;font-size:11px;color:#475569;font-family:'JetBrains Mono',monospace;line-height:1.8}.cnote b{color:#00dc82}
+.scanning{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:#475569;font-family:'JetBrains Mono',monospace;font-size:12px}
+.spinner{width:18px;height:18px;border:2px solid rgba(0,220,130,.2);border-top-color:#00dc82;border-radius:50%;animation:spin .8s linear infinite}
+.price{font-size:10px;color:#475569}
+/* Chart page */
+.chartpage{padding:20px}
+.ct-top{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto 16px;flex-wrap:wrap;gap:10px}
+.ct-sym{font-size:24px;font-weight:800;font-family:'Space Grotesk',sans-serif;color:#e2e8f0;display:flex;align-items:center;gap:12px}
+.dtag{font-size:11px;padding:4px 14px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.dtag.buy{background:rgba(0,220,130,.15);color:#00dc82;border:1px solid rgba(0,220,130,.3)}.dtag.sell{background:rgba(255,68,102,.15);color:#ff4466;border:1px solid rgba(255,68,102,.3)}
+.ct-box{max-width:1100px;margin:0 auto;background:rgba(10,15,26,.95);border:1px solid rgba(0,220,130,.1);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,.4)}
+#tvChart{width:100%;height:550px}
+@media(max-width:600px){.chdr,.drow{grid-template-columns:1.2fr .5fr .5fr .5fr .4fr .6fr;font-size:10px;padding:8px 12px}#tvChart{height:400px}.ct-sym{font-size:18px}}
+</style>
+</head>
+<body>
+<div id="gridBg"></div>
+
+<!-- PAGE 1: LANDING -->
+<div id="p1" class="page active landing">
+  <div class="tag">━━━ Scanner System ━━━</div>
+  <div class="logo">NAZ OMIC</div>
+  <div class="subtitle">MULTI-ASSET MARKET SCANNER</div>
+  <div class="candle-row" id="candleRow"></div>
+  <p class="desc-main">NAZ OMIC is an advanced multi-asset market scanner. It automatically scans <span>Forex & Metals</span>, <span>Crypto</span>, and <span>Stocks</span> to identify high-probability trade setups using a proprietary multi-timeframe analysis system.</p>
+  <p class="desc-sub">The scanner detects context bias through Arrow & EMA alignment, confirms liquidity patterns, identifies sweep candles, validates entry signals, and sets protected levels — all filtered through the Ment Block system. No setup required — just scan and trade.</p>
+  <div class="features">
+    <div class="feat"><div class="fi">◎</div><div class="ft">Multi-Asset</div><div class="fd">Forex, Crypto & Stocks</div></div>
+    <div class="feat"><div class="fi">◈</div><div class="ft">4 Templates</div><div class="fd">MN · W1 · D1 · H4</div></div>
+    <div class="feat"><div class="fi">◉</div><div class="ft">Smart Filter</div><div class="fd">Arrow + EMA + Ment</div></div>
+    <div class="feat"><div class="fi">◇</div><div class="ft">Live Charts</div><div class="fd">Full TradingView charts</div></div>
+  </div>
+  <button class="cta" onclick="goTo('p2')">Get Started →</button>
+  <div class="ver">v3.15 · No setup required</div>
+</div>
+
+<!-- PAGE 2: DASHBOARD -->
+<div id="p2" class="page" style="padding:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <button class="bbtn" onclick="goTo('p1')">← Home</button>
+    <div class="dtitle">NAZ OMIC SCANNER</div>
+    <div style="font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace">v3.15</div>
+  </div>
+  <div class="panel">
+    <div class="phdr"><span>◈ NAZ OMIC SCANNER</span><span class="stag on">LIVE</span></div>
+    <div class="brow"><span class="lbl">Asset:</span><div id="abtns"></div></div>
+    <div class="brow" style="padding-top:6px;padding-bottom:12px"><span class="lbl">Tpl:</span><div id="tbtns"></div></div>
+    <div class="iline" id="tfi"></div>
+    <div class="sline" id="stl"></div>
+    <div class="chdr"><div>SYMBOL</div><div>DIR</div><div>MENT</div><div>STATUS</div><div>PRICE</div><div>CHART</div></div>
+    <div id="rows"></div>
+    <div class="pfooter"><div></div><span class="pi" id="pgi"></span><button class="rb" onclick="doScan(true)">REFRESH</button></div>
+  </div>
+  <div class="cnote" id="note"><b>⚡</b> Click an Asset and Template above, then wait for the scan. Results are cached for 2 minutes.</div>
+</div>
+
+<!-- PAGE 3: CHART (TradingView) -->
+<div id="p3" class="page chartpage">
+  <div class="ct-top">
+    <button class="bbtn" onclick="goTo('p2')">← Dashboard</button>
+    <div class="ct-sym" id="csym"></div>
+    <div style="font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace" id="cmeta"></div>
+  </div>
+  <div class="ct-box">
+    <div id="tvChart"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════ CONFIG ═══════════
+const API = window.location.origin; // Same server
+
+const TFM={Monthly:"MN1 / D1 / MN1 / W1",Weekly:"W1 / H4 / W1 / D1",Daily:"D1 / H1 / D1 / H4","4HR":"H4 / M15 / H4 / M30",Custom:"—"};
+
+// TradingView symbol mapping
+const TV_MAP={
+  EURUSD:"FX:EURUSD",GBPUSD:"FX:GBPUSD",USDJPY:"FX:USDJPY",AUDUSD:"FX:AUDUSD",NZDUSD:"FX:NZDUSD",
+  USDCAD:"FX:USDCAD",USDCHF:"FX:USDCHF",EURJPY:"FX:EURJPY",GBPJPY:"FX:GBPJPY",EURGBP:"FX:EURGBP",
+  EURAUD:"FX:EURAUD",GBPAUD:"FX:GBPAUD",AUDJPY:"FX:AUDJPY",CADJPY:"FX:CADJPY",CHFJPY:"FX:CHFJPY",
+  XAUUSD:"TVC:GOLD",XAGUSD:"TVC:SILVER",
+  BTCUSD:"CRYPTO:BTCUSD",ETHUSD:"CRYPTO:ETHUSD",SOLUSD:"CRYPTO:SOLUSD",XRPUSD:"CRYPTO:XRPUSD",
+  ADAUSD:"CRYPTO:ADAUSD",DOTUSD:"CRYPTO:DOTUSD",AVAXUSD:"CRYPTO:AVAXUSD",LINKUSD:"CRYPTO:LINKUSD",
+  MATICUSD:"CRYPTO:MATICUSD",DOGEUSD:"CRYPTO:DOGEUSD",
+  AAPL:"NASDAQ:AAPL",MSFT:"NASDAQ:MSFT",GOOGL:"NASDAQ:GOOGL",AMZN:"NASDAQ:AMZN",TSLA:"NASDAQ:TSLA",
+  NVDA:"NASDAQ:NVDA",META:"NASDAQ:META",NFLX:"NASDAQ:NFLX",AMD:"NASDAQ:AMD",BA:"NYSE:BA",
+  DIS:"NYSE:DIS",JPM:"NYSE:JPM",V:"NYSE:V",MA:"NYSE:MA",PYPL:"NASDAQ:PYPL",
+};
+
+let cA="Forex&Metals",cT="Weekly",scanning=false;
+
+// Save/load preferences
+function savePrefs(){try{localStorage.setItem('naz_prefs',JSON.stringify({a:cA,t:cT}));}catch(e){}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem('naz_prefs'));if(p){cA=p.a||cA;cT=p.t||cT;}}catch(e){}}
+loadPrefs();
+
+function $(id){return document.getElementById(id);}
+function goTo(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');if(id==='p2')doScan();window.scrollTo(0,0);}
+
+// ═══════════ DASHBOARD ═══════════
+function setAsset(a){cA=a;savePrefs();doScan();}
+function setTpl(t){cT=t;savePrefs();doScan();}
+
+async function doScan(force){
+  const assets=["Forex&Metals","Crypto","Stocks"],aL=["FOREX","CRYPTO","STOCKS"];
+  const tpls=["Monthly","Weekly","Daily","4HR"],tL=["MN","W1","D1","H4"];
+
+  // Render buttons
+  let ab='';assets.forEach((a,i)=>{ab+=`<button class="sb ${a===cA?'on':''}" onclick="setAsset('${a}')">${aL[i]}</button> `;});$('abtns').innerHTML=ab;
+  let tb='';tpls.forEach((t,i)=>{tb+=`<button class="sb ${t===cT?'on':''}" onclick="setTpl('${t}')">${tL[i]}</button> `;});$('tbtns').innerHTML=tb;
+  $('tfi').textContent=`CTF / ETF / ArrowCtx / Val: ${TFM[cT]||'—'}`;
+
+  // Show loading
+  $('rows').innerHTML=`<div class="scanning"><div class="spinner"></div>Scanning ${cA} with ${cT} template...</div>`;
+  $('stl').innerHTML=`Scanning...`;
+  $('pgi').textContent='';
+
+  // Fetch from API
+  try{
+    const url=`${API}/api/scan?asset=${encodeURIComponent(cA)}&template=${encodeURIComponent(cT)}${force?'&force=1':''}`;
+    const r=await fetch(url);const d=await r.json();
+
+    if(d.error){$('rows').innerHTML=`<div class="nr">${d.error}</div>`;return;}
+
+    // If server is still scanning, show progress and auto-retry
+    if(d.scanning && d.signals.length === 0){
+      $('rows').innerHTML=`<div class="scanning"><div class="spinner"></div>Scanning ${d.total_symbols||0} symbols... This takes 30-60 sec on first load.</div>`;
+      $('stl').innerHTML=`<em>Scanning in progress...</em>`;
+      $('note').innerHTML=`<b>⏳</b> First scan takes a moment. Auto-refreshing in 15 seconds...`;
+      setTimeout(()=>doScan(false), 15000);
+      return;
+    }
+
+    const sigs=d.signals||[];
+    $('stl').innerHTML=`Symbols: <em>${d.total_symbols||0}</em> · Qualifying: <em>${sigs.length}</em> · Last: ${d.last_scan||'—'}`;
+
+    let rh='';
+    if(!sigs.length){rh='<div class="nr">No qualifying pairs found for this combination</div>';}
+    else{sigs.forEach((s,i)=>{
+      const dc=s.direction==='BUY'?'g':'r',mc=s.ment==='BULL'?'g':s.ment==='BEAR'?'r':'';
+      rh+=`<div class="drow" style="animation:slideIn .4s ${i*.06}s ease both">
+        <div class="sym">${s.symbol}</div>
+        <div class="${dc}">${s.direction}</div>
+        <div class="${mc}">${s.ment}</div>
+        <div class="g">${s.status}</div>
+        <div class="price">${s.price||''}</div>
+        <div><button class="ob" onclick="openChart('${s.symbol}','${s.direction}','${s.ment}')">CHART</button></div>
+      </div>`;});}
+    $('rows').innerHTML=rh;
+    $('pgi').textContent=sigs.length?`${sigs.length} result${sigs.length>1?'s':''}`:'0';
+    const note = d._note ? ` (${d._note})` : '';
+    $('note').innerHTML=`<b>⚡</b> Scanned ${d.total_symbols||0} symbols. ${sigs.length} qualifying. Results refresh every 3 min.${note}`;
+  }catch(e){
+    $('rows').innerHTML=`<div class="nr">Scanner is waking up... please wait 30 seconds and click REFRESH.</div>`;
+    $('note').innerHTML=`<b>⏳ Starting up:</b> Free hosting sleeps after inactivity. The server is booting now. Try again in 30 seconds.`;
+    setTimeout(()=>doScan(false), 20000);
+  }
+}
+
+// ═══════════ CHART (TradingView Widget) ═══════════
+function openChart(sym,dir,ment){
+  goTo('p3');
+  $('csym').innerHTML=`${sym} <span class="dtag ${dir==='BUY'?'buy':'sell'}">${dir}</span>`;
+  $('cmeta').textContent=`Ment: ${ment} · ${cA} · ${cT}`;
+
+  const tvSym=TV_MAP[sym]||sym;
+  const container=$('tvChart');
+  container.innerHTML='';
+
+  // Embed TradingView Advanced Chart Widget (free)
+  const script=document.createElement('script');
+  script.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async=true;
+  script.innerHTML=JSON.stringify({
+    autosize:true,
+    symbol:tvSym,
+    interval:"D",
+    timezone:"Etc/UTC",
+    theme:"dark",
+    style:"1",
+    locale:"en",
+    backgroundColor:"rgba(10,15,26,1)",
+    gridColor:"rgba(0,220,130,0.04)",
+    hide_side_toolbar:false,
+    allow_symbol_change:true,
+    calendar:false,
+    support_host:"https://www.tradingview.com",
+    studies:["MAExp@tv-basicstudies","MAExp@tv-basicstudies"],
+    overrides:{
+      "mainSeriesProperties.candleStyle.upColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.downColor":"#ff4466",
+      "mainSeriesProperties.candleStyle.borderUpColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.borderDownColor":"#ff4466",
+      "mainSeriesProperties.candleStyle.wickUpColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.wickDownColor":"#ff4466",
+    },
+    width:"100%",
+    height:"100%",
+  });
+
+  const wrapper=document.createElement('div');
+  wrapper.className='tradingview-widget-container';
+  wrapper.style.height='100%';
+  wrapper.style.width='100%';
+  const inner=document.createElement('div');
+  inner.className='tradingview-widget-container__widget';
+  inner.style.height='calc(100% - 32px)';
+  inner.style.width='100%';
+  wrapper.appendChild(inner);
+  wrapper.appendChild(script);
+  container.appendChild(wrapper);
+}
+
+// ═══════════ INIT ═══════════
+(()=>{const r=$('candleRow');let h='';for(let i=0;i<45;i++){const ht=18+Math.random()*55,bull=Math.random()>.42,c=bull?'#00dc82':'#ff4466';h+=`<div class="candle" style="height:${ht}px;background:${c};animation-delay:${i*.03}s"><div class="wick wt" style="background:${c}"></div><div class="wick wb" style="background:${c}"></div></div>`;}r.innerHTML=h;})();
+</script>
+</body>
+</html>
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAZ OMIC Scanner</title><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAZ OMIC Scanner</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}body{background:#060a14;color:#e2e8f0;font-family:'DM Sans',sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#0a0f1a}::-webkit-scrollbar-thumb{background:#1e293b;border-radius:3px}
+.page{display:none;min-height:100vh;position:relative;z-index:1}.page.active{display:block;animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(0,220,130,.3)}50%{box-shadow:0 0 60px rgba(0,220,130,.5)}}
+@keyframes candleFade{from{opacity:0;transform:scaleY(0)}to{opacity:.25;transform:scaleY(1)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes spin{to{transform:rotate(360deg)}}
+#gridBg{position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(rgba(0,220,130,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,130,.03) 1px,transparent 1px);background-size:60px 60px}
+.landing{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;min-height:100vh}
+.tag{font-size:13px;letter-spacing:8px;color:#00dc82;font-family:'JetBrains Mono',monospace;margin-bottom:10px}
+.logo{font-size:clamp(50px,9vw,100px);font-weight:800;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#fff,#00dc82,#00a060);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;margin-bottom:12px}
+.subtitle{font-size:13px;color:#00dc82;letter-spacing:6px;font-family:'JetBrains Mono',monospace;margin-bottom:44px}
+.candle-row{display:flex;gap:4px;align-items:flex-end;justify-content:center;height:85px;margin-bottom:44px;overflow:hidden}
+.candle{width:6px;border-radius:2px;position:relative;animation:candleFade .7s ease both;transform-origin:bottom}
+.wick{position:absolute;left:50%;transform:translateX(-50%);width:1px;opacity:.5}.wt{top:-30%;height:30%}.wb{bottom:-20%;height:20%}
+.desc-main{max-width:680px;font-size:16px;line-height:1.9;color:#94a3b8;margin-bottom:18px}.desc-main span{color:#00dc82}
+.desc-sub{max-width:680px;font-size:14px;line-height:1.9;color:#64748b;margin-bottom:40px}
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;max-width:720px;width:100%;margin-bottom:48px}
+.feat{background:rgba(0,220,130,.04);border:1px solid rgba(0,220,130,.1);border-radius:12px;padding:22px 14px;text-align:center;transition:all .3s}.feat:hover{background:rgba(0,220,130,.08);border-color:rgba(0,220,130,.3);transform:translateY(-4px)}
+.fi{font-size:26px;color:#00dc82;margin-bottom:6px}.ft{font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:3px;font-family:'Space Grotesk',sans-serif}.fd{font-size:11px;color:#64748b}
+.cta{background:linear-gradient(135deg,#00dc82,#00a060);color:#0a0f1a;border:none;border-radius:50px;padding:18px 56px;font-size:16px;font-weight:800;font-family:'Space Grotesk',sans-serif;letter-spacing:3px;text-transform:uppercase;cursor:pointer;box-shadow:0 0 40px rgba(0,220,130,.3);transition:all .3s;animation:pulse 2.5s 1s infinite}.cta:hover{transform:scale(1.05)}
+.ver{margin-top:18px;font-size:11px;color:#334155;font-family:'JetBrains Mono',monospace}
+.bbtn{background:none;border:1px solid rgba(0,220,130,.2);color:#00dc82;padding:8px 20px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;transition:all .2s}.bbtn:hover{background:rgba(0,220,130,.1)}
+.dtitle{font-size:22px;font-weight:800;font-family:'Space Grotesk',sans-serif;background:linear-gradient(135deg,#fff,#00dc82);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.panel{max-width:750px;margin:0 auto;background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(10,15,30,.98));border:1px solid rgba(0,220,130,.12);border-radius:16px;overflow:hidden;box-shadow:0 0 60px rgba(0,220,130,.06),0 4px 30px rgba(0,0,0,.4)}
+.phdr{background:linear-gradient(90deg,rgba(0,220,130,.08),rgba(0,220,130,.02));padding:14px 20px;border-bottom:1px solid rgba(0,220,130,.1);font-size:11px;font-weight:700;color:#00dc82;font-family:'JetBrains Mono',monospace;letter-spacing:2px;display:flex;align-items:center;justify-content:space-between}
+.stag{font-size:9px;padding:2px 8px;border-radius:4px;font-weight:700}.stag.on{background:rgba(0,220,130,.15);color:#00dc82}
+.brow{padding:12px 20px 6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}.brow .lbl{font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;min-width:48px}
+.sb{padding:6px 15px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;cursor:pointer;transition:all .2s;border:1px solid rgba(100,116,139,.3);background:rgba(30,41,59,.5);color:#64748b}
+.sb.on{border-color:#00dc82;background:rgba(0,220,130,.15);color:#00dc82;box-shadow:0 0 12px rgba(0,220,130,.2)}
+.iline{padding:8px 20px;font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(0,220,130,.08)}
+.sline{padding:10px 20px;font-size:11px;color:#64748b;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(0,220,130,.08)}.sline em{font-style:normal;color:#00dc82;font-weight:700}
+.chdr{display:grid;grid-template-columns:1.3fr .6fr .6fr .6fr .5fr .7fr;padding:10px 20px;font-size:10px;font-weight:700;color:#475569;font-family:'JetBrains Mono',monospace;letter-spacing:1px;border-bottom:1px solid rgba(0,220,130,.06)}
+.drow{display:grid;grid-template-columns:1.3fr .6fr .6fr .6fr .5fr .7fr;padding:10px 20px;font-size:12px;font-family:'JetBrains Mono',monospace;border-bottom:1px solid rgba(30,41,59,.5);transition:background .2s}
+.drow:nth-child(even){background:rgba(15,23,42,.4)}.drow:hover{background:rgba(0,220,130,.04)!important}
+.sym{color:#e2e8f0;font-weight:600}.g{color:#00dc82;font-weight:700}.r{color:#ff4466;font-weight:700}
+.nr{padding:30px 20px;text-align:center;font-size:12px;color:#334155;font-family:'JetBrains Mono',monospace}
+.ob{padding:4px 14px;border-radius:5px;font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,100,180,.3);color:#93c5fd;border:1px solid rgba(0,100,180,.4);cursor:pointer;transition:all .2s}.ob:hover{background:rgba(0,100,180,.5);color:#fff}
+.pfooter{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(15,23,42,.6);border-top:1px solid rgba(0,220,130,.08)}
+.pi{font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace}
+.rb{padding:6px 16px;border-radius:6px;font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;background:rgba(0,130,60,.3);color:#00dc82;border:1px solid rgba(0,220,130,.3);cursor:pointer;transition:all .2s}.rb:hover{background:rgba(0,130,60,.5)}
+.cnote{max-width:750px;margin:28px auto;padding:14px 20px;background:rgba(0,220,130,.03);border:1px solid rgba(0,220,130,.08);border-radius:12px;font-size:11px;color:#475569;font-family:'JetBrains Mono',monospace;line-height:1.8}.cnote b{color:#00dc82}
+.scanning{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:#475569;font-family:'JetBrains Mono',monospace;font-size:12px}
+.spinner{width:18px;height:18px;border:2px solid rgba(0,220,130,.2);border-top-color:#00dc82;border-radius:50%;animation:spin .8s linear infinite}
+.price{font-size:10px;color:#475569}
+/* Chart page */
+.chartpage{padding:20px}
+.ct-top{display:flex;align-items:center;justify-content:space-between;max-width:1100px;margin:0 auto 16px;flex-wrap:wrap;gap:10px}
+.ct-sym{font-size:24px;font-weight:800;font-family:'Space Grotesk',sans-serif;color:#e2e8f0;display:flex;align-items:center;gap:12px}
+.dtag{font-size:11px;padding:4px 14px;border-radius:20px;font-family:'JetBrains Mono',monospace;font-weight:700}
+.dtag.buy{background:rgba(0,220,130,.15);color:#00dc82;border:1px solid rgba(0,220,130,.3)}.dtag.sell{background:rgba(255,68,102,.15);color:#ff4466;border:1px solid rgba(255,68,102,.3)}
+.ct-box{max-width:1100px;margin:0 auto;background:rgba(10,15,26,.95);border:1px solid rgba(0,220,130,.1);border-radius:12px;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,.4)}
+#tvChart{width:100%;height:550px}
+@media(max-width:600px){.chdr,.drow{grid-template-columns:1.2fr .5fr .5fr .5fr .4fr .6fr;font-size:10px;padding:8px 12px}#tvChart{height:400px}.ct-sym{font-size:18px}}
+</style>
+</head>
+<body>
+<div id="gridBg"></div>
+
+<!-- PAGE 1: LANDING -->
+<div id="p1" class="page active landing">
+  <div class="tag">━━━ Scanner System ━━━</div>
+  <div class="logo">NAZ OMIC</div>
+  <div class="subtitle">MULTI-ASSET MARKET SCANNER</div>
+  <div class="candle-row" id="candleRow"></div>
+  <p class="desc-main">NAZ OMIC is an advanced multi-asset market scanner. It automatically scans <span>Forex & Metals</span>, <span>Crypto</span>, and <span>Stocks</span> to identify high-probability trade setups using a proprietary multi-timeframe analysis system.</p>
+  <p class="desc-sub">The scanner detects context bias through Arrow & EMA alignment, confirms liquidity patterns, identifies sweep candles, validates entry signals, and sets protected levels — all filtered through the Ment Block system. No setup required — just scan and trade.</p>
+  <div class="features">
+    <div class="feat"><div class="fi">◎</div><div class="ft">Multi-Asset</div><div class="fd">Forex, Crypto & Stocks</div></div>
+    <div class="feat"><div class="fi">◈</div><div class="ft">4 Templates</div><div class="fd">MN · W1 · D1 · H4</div></div>
+    <div class="feat"><div class="fi">◉</div><div class="ft">Smart Filter</div><div class="fd">Arrow + EMA + Ment</div></div>
+    <div class="feat"><div class="fi">◇</div><div class="ft">Live Charts</div><div class="fd">Full TradingView charts</div></div>
+  </div>
+  <button class="cta" onclick="goTo('p2')">Get Started →</button>
+  <div class="ver">v3.15 · No setup required</div>
+</div>
+
+<!-- PAGE 2: DASHBOARD -->
+<div id="p2" class="page" style="padding:20px">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+    <button class="bbtn" onclick="goTo('p1')">← Home</button>
+    <div class="dtitle">NAZ OMIC SCANNER</div>
+    <div style="font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace">v3.15</div>
+  </div>
+  <div class="panel">
+    <div class="phdr"><span>◈ NAZ OMIC SCANNER</span><span class="stag on">LIVE</span></div>
+    <div class="brow"><span class="lbl">Asset:</span><div id="abtns"></div></div>
+    <div class="brow" style="padding-top:6px;padding-bottom:12px"><span class="lbl">Tpl:</span><div id="tbtns"></div></div>
+    <div class="iline" id="tfi"></div>
+    <div class="sline" id="stl"></div>
+    <div class="chdr"><div>SYMBOL</div><div>DIR</div><div>MENT</div><div>STATUS</div><div>PRICE</div><div>CHART</div></div>
+    <div id="rows"></div>
+    <div class="pfooter"><div></div><span class="pi" id="pgi"></span><button class="rb" onclick="doScan(true)">REFRESH</button></div>
+  </div>
+  <div class="cnote" id="note"><b>⚡</b> Click an Asset and Template above, then wait for the scan. Results are cached for 2 minutes.</div>
+</div>
+
+<!-- PAGE 3: CHART (TradingView) -->
+<div id="p3" class="page chartpage">
+  <div class="ct-top">
+    <button class="bbtn" onclick="goTo('p2')">← Dashboard</button>
+    <div class="ct-sym" id="csym"></div>
+    <div style="font-size:10px;color:#475569;font-family:'JetBrains Mono',monospace" id="cmeta"></div>
+  </div>
+  <div class="ct-box">
+    <div id="tvChart"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════ CONFIG ═══════════
+const API = window.location.origin; // Same server
+
+const TFM={Monthly:"MN1 / D1 / MN1 / W1",Weekly:"W1 / H4 / W1 / D1",Daily:"D1 / H1 / D1 / H4","4HR":"H4 / M15 / H4 / M30",Custom:"—"};
+
+// TradingView symbol mapping
+const TV_MAP={
+  EURUSD:"FX:EURUSD",GBPUSD:"FX:GBPUSD",USDJPY:"FX:USDJPY",AUDUSD:"FX:AUDUSD",NZDUSD:"FX:NZDUSD",
+  USDCAD:"FX:USDCAD",USDCHF:"FX:USDCHF",EURJPY:"FX:EURJPY",GBPJPY:"FX:GBPJPY",EURGBP:"FX:EURGBP",
+  EURAUD:"FX:EURAUD",GBPAUD:"FX:GBPAUD",AUDJPY:"FX:AUDJPY",CADJPY:"FX:CADJPY",CHFJPY:"FX:CHFJPY",
+  XAUUSD:"TVC:GOLD",XAGUSD:"TVC:SILVER",
+  BTCUSD:"CRYPTO:BTCUSD",ETHUSD:"CRYPTO:ETHUSD",SOLUSD:"CRYPTO:SOLUSD",XRPUSD:"CRYPTO:XRPUSD",
+  ADAUSD:"CRYPTO:ADAUSD",DOTUSD:"CRYPTO:DOTUSD",AVAXUSD:"CRYPTO:AVAXUSD",LINKUSD:"CRYPTO:LINKUSD",
+  MATICUSD:"CRYPTO:MATICUSD",DOGEUSD:"CRYPTO:DOGEUSD",
+  AAPL:"NASDAQ:AAPL",MSFT:"NASDAQ:MSFT",GOOGL:"NASDAQ:GOOGL",AMZN:"NASDAQ:AMZN",TSLA:"NASDAQ:TSLA",
+  NVDA:"NASDAQ:NVDA",META:"NASDAQ:META",NFLX:"NASDAQ:NFLX",AMD:"NASDAQ:AMD",BA:"NYSE:BA",
+  DIS:"NYSE:DIS",JPM:"NYSE:JPM",V:"NYSE:V",MA:"NYSE:MA",PYPL:"NASDAQ:PYPL",
+};
+
+let cA="Forex&Metals",cT="Weekly",scanning=false;
+
+// Save/load preferences
+function savePrefs(){try{localStorage.setItem('naz_prefs',JSON.stringify({a:cA,t:cT}));}catch(e){}}
+function loadPrefs(){try{const p=JSON.parse(localStorage.getItem('naz_prefs'));if(p){cA=p.a||cA;cT=p.t||cT;}}catch(e){}}
+loadPrefs();
+
+function $(id){return document.getElementById(id);}
+function goTo(id){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$(id).classList.add('active');if(id==='p2')doScan();window.scrollTo(0,0);}
+
+// ═══════════ DASHBOARD ═══════════
+function setAsset(a){cA=a;savePrefs();doScan();}
+function setTpl(t){cT=t;savePrefs();doScan();}
+
+async function doScan(force){
+  const assets=["Forex&Metals","Crypto","Stocks"],aL=["FOREX","CRYPTO","STOCKS"];
+  const tpls=["Monthly","Weekly","Daily","4HR"],tL=["MN","W1","D1","H4"];
+
+  // Render buttons
+  let ab='';assets.forEach((a,i)=>{ab+=`<button class="sb ${a===cA?'on':''}" onclick="setAsset('${a}')">${aL[i]}</button> `;});$('abtns').innerHTML=ab;
+  let tb='';tpls.forEach((t,i)=>{tb+=`<button class="sb ${t===cT?'on':''}" onclick="setTpl('${t}')">${tL[i]}</button> `;});$('tbtns').innerHTML=tb;
+  $('tfi').textContent=`CTF / ETF / ArrowCtx / Val: ${TFM[cT]||'—'}`;
+
+  // Show loading
+  $('rows').innerHTML=`<div class="scanning"><div class="spinner"></div>Scanning ${cA} with ${cT} template...</div>`;
+  $('stl').innerHTML=`Scanning...`;
+  $('pgi').textContent='';
+
+  // Fetch from API
+  try{
+    const url=`${API}/api/scan?asset=${encodeURIComponent(cA)}&template=${encodeURIComponent(cT)}${force?'&force=1':''}`;
+    const r=await fetch(url);const d=await r.json();
+
+    if(d.error){$('rows').innerHTML=`<div class="nr">${d.error}</div>`;return;}
+
+    // If server is still scanning, show progress and auto-retry
+    if(d.scanning && d.signals.length === 0){
+      $('rows').innerHTML=`<div class="scanning"><div class="spinner"></div>Scanning ${d.total_symbols||0} symbols... This takes 30-60 sec on first load.</div>`;
+      $('stl').innerHTML=`<em>Scanning in progress...</em>`;
+      $('note').innerHTML=`<b>⏳</b> First scan takes a moment. Auto-refreshing in 15 seconds...`;
+      setTimeout(()=>doScan(false), 15000);
+      return;
+    }
+
+    const sigs=d.signals||[];
+    $('stl').innerHTML=`Symbols: <em>${d.total_symbols||0}</em> · Qualifying: <em>${sigs.length}</em> · Last: ${d.last_scan||'—'}`;
+
+    let rh='';
+    if(!sigs.length){rh='<div class="nr">No qualifying pairs found for this combination</div>';}
+    else{sigs.forEach((s,i)=>{
+      const dc=s.direction==='BUY'?'g':'r',mc=s.ment==='BULL'?'g':s.ment==='BEAR'?'r':'';
+      rh+=`<div class="drow" style="animation:slideIn .4s ${i*.06}s ease both">
+        <div class="sym">${s.symbol}</div>
+        <div class="${dc}">${s.direction}</div>
+        <div class="${mc}">${s.ment}</div>
+        <div class="g">${s.status}</div>
+        <div class="price">${s.price||''}</div>
+        <div><button class="ob" onclick="openChart('${s.symbol}','${s.direction}','${s.ment}')">CHART</button></div>
+      </div>`;});}
+    $('rows').innerHTML=rh;
+    $('pgi').textContent=sigs.length?`${sigs.length} result${sigs.length>1?'s':''}`:'0';
+    const note = d._note ? ` (${d._note})` : '';
+    $('note').innerHTML=`<b>⚡</b> Scanned ${d.total_symbols||0} symbols. ${sigs.length} qualifying. Results refresh every 3 min.${note}`;
+  }catch(e){
+    $('rows').innerHTML=`<div class="nr">Scanner is waking up... please wait 30 seconds and click REFRESH.</div>`;
+    $('note').innerHTML=`<b>⏳ Starting up:</b> Free hosting sleeps after inactivity. The server is booting now. Try again in 30 seconds.`;
+    setTimeout(()=>doScan(false), 20000);
+  }
+}
+
+// ═══════════ CHART (TradingView Widget) ═══════════
+function openChart(sym,dir,ment){
+  goTo('p3');
+  $('csym').innerHTML=`${sym} <span class="dtag ${dir==='BUY'?'buy':'sell'}">${dir}</span>`;
+  $('cmeta').textContent=`Ment: ${ment} · ${cA} · ${cT}`;
+
+  const tvSym=TV_MAP[sym]||sym;
+  const container=$('tvChart');
+  container.innerHTML='';
+
+  // Embed TradingView Advanced Chart Widget (free)
+  const script=document.createElement('script');
+  script.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async=true;
+  script.innerHTML=JSON.stringify({
+    autosize:true,
+    symbol:tvSym,
+    interval:"D",
+    timezone:"Etc/UTC",
+    theme:"dark",
+    style:"1",
+    locale:"en",
+    backgroundColor:"rgba(10,15,26,1)",
+    gridColor:"rgba(0,220,130,0.04)",
+    hide_side_toolbar:false,
+    allow_symbol_change:true,
+    calendar:false,
+    support_host:"https://www.tradingview.com",
+    studies:["MAExp@tv-basicstudies","MAExp@tv-basicstudies"],
+    overrides:{
+      "mainSeriesProperties.candleStyle.upColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.downColor":"#ff4466",
+      "mainSeriesProperties.candleStyle.borderUpColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.borderDownColor":"#ff4466",
+      "mainSeriesProperties.candleStyle.wickUpColor":"#00dc82",
+      "mainSeriesProperties.candleStyle.wickDownColor":"#ff4466",
+    },
+    width:"100%",
+    height:"100%",
+  });
+
+  const wrapper=document.createElement('div');
+  wrapper.className='tradingview-widget-container';
+  wrapper.style.height='100%';
+  wrapper.style.width='100%';
+  const inner=document.createElement('div');
+  inner.className='tradingview-widget-container__widget';
+  inner.style.height='calc(100% - 32px)';
+  inner.style.width='100%';
+  wrapper.appendChild(inner);
+  wrapper.appendChild(script);
+  container.appendChild(wrapper);
+}
+
+// ═══════════ INIT ═══════════
+(()=>{const r=$('candleRow');let h='';for(let i=0;i<45;i++){const ht=18+Math.random()*55,bull=Math.random()>.42,c=bull?'#00dc82':'#ff4466';h+=`<div class="candle" style="height:${ht}px;background:${c};animation-delay:${i*.03}s"><div class="wick wt" style="background:${c}"></div><div class="wick wb" style="background:${c}"></div></div>`;}r.innerHTML=h;})();
+</script>
+</body>
+</html>
+
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>◈</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
