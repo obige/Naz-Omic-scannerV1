@@ -1,14 +1,12 @@
 """
-NAZ OMIC Scanner – Standalone Web App v3
-Background scanning thread — no timeouts.
+NAZ OMIC Scanner – Web App v4
+Lean build for Render free tier. No startup scan.
+Scans only when user requests. Background threads.
 """
-import os, json, time, threading, traceback
+import os, time, threading
 from datetime import datetime
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
-import yfinance as yf
-import pandas as pd
-import numpy as np
 
 app = Flask(__name__, static_folder='static')
 CORS(app)
@@ -35,270 +33,323 @@ SYMBOLS = {
     "Crypto": {
         "BTCUSD":"BTC-USD","ETHUSD":"ETH-USD","BNBUSD":"BNB-USD","SOLUSD":"SOL-USD",
         "XRPUSD":"XRP-USD","ADAUSD":"ADA-USD","DOGEUSD":"DOGE-USD","DOTUSD":"DOT-USD",
-        "AVAXUSD":"AVAX-USD","LINKUSD":"LINK-USD","MATICUSD":"MATIC-USD","SHIBUSD":"SHIB-USD",
+        "AVAXUSD":"AVAX-USD","LINKUSD":"LINK-USD","SHIBUSD":"SHIB-USD",
         "UNIUSD":"UNI-USD","LTCUSD":"LTC-USD","BCHUSD":"BCH-USD","ATOMUSD":"ATOM-USD",
-        "XLMUSD":"XLM-USD","NEARUSD":"NEAR-USD","ALGOUSD":"ALGO-USD","ICPUSD":"ICP-USD",
-        "FILUSD":"FIL-USD","TRXUSD":"TRX-USD","ETCUSD":"ETC-USD","EOSUSD":"EOS-USD",
-        "HBARUSD":"HBAR-USD","AAVEUSD":"AAVE-USD","FTMUSD":"FTM-USD",
-        "OPUSD":"OP-USD","SUIUSD":"SUI20947-USD","ARBUSD":"ARB11841-USD",
+        "XLMUSD":"XLM-USD","NEARUSD":"NEAR-USD","ICPUSD":"ICP-USD",
+        "TRXUSD":"TRX-USD","ETCUSD":"ETC-USD","HBARUSD":"HBAR-USD",
+        "AAVEUSD":"AAVE-USD","OPUSD":"OP-USD",
     },
     "Stocks": {
         "AAPL":"AAPL","MSFT":"MSFT","GOOGL":"GOOGL","AMZN":"AMZN","TSLA":"TSLA",
         "NVDA":"NVDA","META":"META","NFLX":"NFLX","AMD":"AMD","INTC":"INTC",
         "CRM":"CRM","ORCL":"ORCL","ADBE":"ADBE","CSCO":"CSCO","QCOM":"QCOM",
-        "AVGO":"AVGO","TXN":"TXN","MU":"MU","SHOP":"SHOP","PYPL":"PYPL",
-        "UBER":"UBER","ABNB":"ABNB","PLTR":"PLTR","COIN":"COIN",
-        "JPM":"JPM","BAC":"BAC","WFC":"WFC","GS":"GS","MS":"MS","V":"V","MA":"MA",
-        "JNJ":"JNJ","UNH":"UNH","PFE":"PFE","ABBV":"ABBV","MRK":"MRK","LLY":"LLY",
-        "WMT":"WMT","KO":"KO","PEP":"PEP","MCD":"MCD","NKE":"NKE","DIS":"DIS",
-        "BA":"BA","CAT":"CAT","GE":"GE","HON":"HON",
-        "XOM":"XOM","CVX":"CVX","COP":"COP",
+        "AVGO":"AVGO","TXN":"TXN","MU":"MU","PYPL":"PYPL",
+        "UBER":"UBER","PLTR":"PLTR","COIN":"COIN",
+        "JPM":"JPM","BAC":"BAC","GS":"GS","V":"V","MA":"MA",
+        "JNJ":"JNJ","UNH":"UNH","PFE":"PFE","LLY":"LLY",
+        "WMT":"WMT","KO":"KO","MCD":"MCD","DIS":"DIS",
+        "BA":"BA","CAT":"CAT","GE":"GE",
+        "XOM":"XOM","CVX":"CVX",
     },
 }
 
 TEMPLATES = {
-    "Monthly": {"ctx":"1mo","entry":"1d", "ctx_arrow":"1mo","val":"1wk",
-                "ctx_period":"5y","entry_period":"1y","val_period":"2y","label":"MN1 / D1 / MN1 / W1"},
-    "Weekly":  {"ctx":"1wk","entry":"1d", "ctx_arrow":"1wk","val":"1d",
-                "ctx_period":"2y","entry_period":"6mo","val_period":"1y","label":"W1 / H4 / W1 / D1"},
-    "Daily":   {"ctx":"1d", "entry":"1h", "ctx_arrow":"1d", "val":"1d",
-                "ctx_period":"1y","entry_period":"30d","val_period":"6mo","label":"D1 / H1 / D1 / H4"},
-    "4HR":     {"ctx":"1d", "entry":"30m","ctx_arrow":"1d", "val":"1h",
-                "ctx_period":"6mo","entry_period":"30d","val_period":"30d","label":"H4 / M15 / H4 / M30"},
+    "Monthly": {"ctx":"1mo","entry":"1d","ctx_arrow":"1mo","val":"1wk",
+                "ctx_period":"5y","entry_period":"1y","val_period":"2y",
+                "label":"MN1 / D1 / MN1 / W1"},
+    "Weekly":  {"ctx":"1wk","entry":"1d","ctx_arrow":"1wk","val":"1d",
+                "ctx_period":"2y","entry_period":"6mo","val_period":"1y",
+                "label":"W1 / H4 / W1 / D1"},
+    "Daily":   {"ctx":"1d","entry":"1h","ctx_arrow":"1d","val":"1d",
+                "ctx_period":"1y","entry_period":"30d","val_period":"6mo",
+                "label":"D1 / H1 / D1 / H4"},
+    "4HR":     {"ctx":"1d","entry":"30m","ctx_arrow":"1d","val":"1h",
+                "ctx_period":"6mo","entry_period":"30d","val_period":"30d",
+                "label":"H4 / M15 / H4 / M30"},
 }
 
-MENT_BARS_BACK = 30
+MENT_BARS = 30
 
 # ═══════════════════════════════════════════════════════════════
-# SCAN RESULTS STORE (thread-safe)
+# RESULTS STORE
 # ═══════════════════════════════════════════════════════════════
-scan_results = {}    # key: "asset_template" → result dict
-scan_status = {}     # key: "asset_template" → {"scanning": bool, "last_scan": time}
-store_lock = threading.Lock()
+results = {}
+status = {}
+lock = threading.Lock()
 
-def get_result(asset, tpl):
-    key = f"{asset}_{tpl}"
-    with store_lock:
-        return scan_results.get(key)
+def get_res(a, t):
+    with lock:
+        return results.get(f"{a}_{t}")
 
-def set_result(asset, tpl, data):
-    key = f"{asset}_{tpl}"
-    with store_lock:
-        scan_results[key] = data
-        scan_status[key] = {"scanning": False, "last_scan": time.time()}
+def set_res(a, t, d):
+    with lock:
+        results[f"{a}_{t}"] = d
+        status[f"{a}_{t}"] = {"scanning": False, "ts": time.time()}
 
-def is_scanning(asset, tpl):
-    key = f"{asset}_{tpl}"
-    with store_lock:
-        st = scan_status.get(key, {})
-        return st.get("scanning", False)
+def is_busy(a, t):
+    with lock:
+        return status.get(f"{a}_{t}", {}).get("scanning", False)
 
-def is_stale(asset, tpl, max_age=180):
-    key = f"{asset}_{tpl}"
-    with store_lock:
-        st = scan_status.get(key, {})
-        last = st.get("last_scan", 0)
-        return (time.time() - last) > max_age
+def is_old(a, t, age=180):
+    with lock:
+        ts = status.get(f"{a}_{t}", {}).get("ts", 0)
+        return (time.time() - ts) > age
 
-def mark_scanning(asset, tpl):
-    key = f"{asset}_{tpl}"
-    with store_lock:
-        scan_status[key] = {"scanning": True, "last_scan": scan_status.get(key, {}).get("last_scan", 0)}
+def mark_busy(a, t):
+    with lock:
+        status[f"{a}_{t}"] = {"scanning": True, "ts": status.get(f"{a}_{t}", {}).get("ts", 0)}
 
 # ═══════════════════════════════════════════════════════════════
-# DATA FETCHING (with timeout per symbol)
+# DATA FETCH — lazy import yfinance (saves startup memory)
 # ═══════════════════════════════════════════════════════════════
-def fetch_ohlc(yf_ticker, interval, period):
+_yf = None
+
+def get_yf():
+    global _yf
+    if _yf is None:
+        import yfinance
+        _yf = yfinance
+    return _yf
+
+def fetch(ticker, interval, period):
     try:
-        tk = yf.Ticker(yf_ticker)
-        df = tk.history(period=period, interval=interval, timeout=10)
+        yf = get_yf()
+        df = yf.Ticker(ticker).history(period=period, interval=interval, timeout=10)
         if df is None or df.empty or len(df) < 5:
             return None
         df = df.reset_index()
         if 'Datetime' in df.columns:
             df = df.rename(columns={'Datetime': 'Date'})
-        return df[['Date', 'Open', 'High', 'Low', 'Close', 'Volume']].copy()
+        return df[['Date','Open','High','Low','Close','Volume']].copy()
     except:
         return None
 
 # ═══════════════════════════════════════════════════════════════
-# SCANNING LOGIC — MATCHES MQL5 EA
+# SCAN LOGIC — matches MQL5 EA
 # ═══════════════════════════════════════════════════════════════
-def check_arrow(df):
+def arrow(df):
     if df is None or len(df) < 3:
         return "None"
     n = len(df)
-    limit = min(n - 1, 100)
-    for i in range(1, limit + 1):
+    for i in range(1, min(n - 1, 100) + 1):
         bi = n - 1 - i
         pi = bi - 1
-        if bi < 0 or pi < 0:
+        if pi < 0:
             break
         cc = df['Close'].iloc[bi]
-        ph = df['High'].iloc[pi]
-        pl = df['Low'].iloc[pi]
-        if cc > ph: return "UP"
-        if cc < pl: return "DOWN"
+        if cc > df['High'].iloc[pi]:
+            return "UP"
+        if cc < df['Low'].iloc[pi]:
+            return "DOWN"
     return "None"
 
-def check_ema_state(df, p1=10, p2=20):
-    if df is None or len(df) < p2 + 5:
+def ema_state(df, s=10, l=20):
+    if df is None or len(df) < l + 5:
         return "N/A"
-    closes = df['Close'].values
-    es = pd.Series(closes).ewm(span=p1, adjust=False).mean().values
-    el = pd.Series(closes).ewm(span=p2, adjust=False).mean().values
-    if es[-1] == 0 or el[-1] == 0: return "N/A"
-    if es[-1] > el[-1]: return "ACC"
-    if es[-1] < el[-1]: return "DISS"
+    import pandas as pd
+    c = df['Close'].values
+    es = pd.Series(c).ewm(span=s, adjust=False).mean().values[-1]
+    el = pd.Series(c).ewm(span=l, adjust=False).mean().values[-1]
+    if es == 0 or el == 0:
+        return "N/A"
+    if es > el:
+        return "ACC"
+    if es < el:
+        return "DISS"
     return "EQL"
 
-def calc_ment_block(df, lookback=30):
-    if df is None or len(df) < lookback + 10:
+def ment(df, lb=30):
+    if df is None or len(df) < lb + 10:
         return 0
-    H = df['High'].values; L = df['Low'].values; C = df['Close'].values; n = len(df)
-    lo_i = 0; hi_i = 0
-    for k in range(1, min(lookback, n)):
-        if L[k] < L[lo_i]: lo_i = k
-        if H[k] > H[hi_i]: hi_i = k
-    mL = L[lo_i]; mH = H[hi_i]; trend = 0
-    for i in range(lookback, n):
+    H = df['High'].values
+    L = df['Low'].values
+    C = df['Close'].values
+    n = len(df)
+    lo = 0
+    hi = 0
+    for k in range(1, min(lb, n)):
+        if L[k] < L[lo]:
+            lo = k
+        if H[k] > H[hi]:
+            hi = k
+    mL = L[lo]
+    mH = H[hi]
+    tr = 0
+    for i in range(lb, n):
         if C[i] >= mH:
-            mH = H[i]; lL = L[i]
-            for j in range(1, lookback):
-                idx = i - j
-                if idx < 0: break
-                if L[idx] < lL: lL = L[idx]
-                if idx > 0 and C[idx] < L[idx-1]: mL = min(L[idx], lL); break
-            trend = 1
+            mH = H[i]
+            lL = L[i]
+            for j in range(1, lb):
+                x = i - j
+                if x < 0:
+                    break
+                if L[x] < lL:
+                    lL = L[x]
+                if x > 0 and C[x] < L[x - 1]:
+                    mL = min(L[x], lL)
+                    break
+            tr = 1
         if C[i] <= mL:
-            mL = L[i]; lH = H[i]
-            for j in range(1, lookback):
-                idx = i - j
-                if idx < 0: break
-                if H[idx] > lH: lH = H[idx]
-                if idx > 0 and C[idx] > H[idx-1]: mH = max(H[idx], lH); break
-            trend = -1
-    return trend
+            mL = L[i]
+            lH = H[i]
+            for j in range(1, lb):
+                x = i - j
+                if x < 0:
+                    break
+                if H[x] > lH:
+                    lH = H[x]
+                if x > 0 and C[x] > H[x - 1]:
+                    mH = max(H[x], lH)
+                    break
+            tr = -1
+    return tr
 
-def search_pattern(df, bullish):
-    if df is None or len(df) < 5: return False, 0, -1
+def find_pattern(df, bull):
+    if df is None or len(df) < 5:
+        return False, 0, -1
     n = len(df)
     for i in range(n - 2, 0, -1):
-        if i < 1: continue
-        cc = df['Close'].iloc[i]; ph = df['High'].iloc[i-1]; pl = df['Low'].iloc[i-1]
-        if bullish and cc > ph:
-            return True, float(df['Low'].iloc[:i+1].min()), i
-        if not bullish and cc < pl:
-            return True, float(df['High'].iloc[:i+1].max()), i
+        if i < 1:
+            continue
+        cc = df['Close'].iloc[i]
+        ph = df['High'].iloc[i - 1]
+        pl = df['Low'].iloc[i - 1]
+        if bull and cc > ph:
+            return True, float(df['Low'].iloc[:i + 1].min()), i
+        if not bull and cc < pl:
+            return True, float(df['High'].iloc[:i + 1].max()), i
     return False, 0, -1
 
-def search_sweep(df, pline, bullish, pidx):
-    if df is None or pidx < 0: return False, -1
-    for i in range(pidx + 1, len(df)):
-        if bullish and df['Low'].iloc[i] < pline: return True, i
-        if not bullish and df['High'].iloc[i] > pline: return True, i
+def find_sweep(df, pl, bull, pi):
+    if df is None or pi < 0:
+        return False, -1
+    for i in range(pi + 1, len(df)):
+        if bull and df['Low'].iloc[i] < pl:
+            return True, i
+        if not bull and df['High'].iloc[i] > pl:
+            return True, i
     return False, -1
 
-def search_entry(df, sidx, bullish):
-    if df is None or sidx < 0: return False, -1
-    for i in range(sidx + 1, len(df)):
-        if i < 1: continue
-        cc = df['Close'].iloc[i]; ph = df['High'].iloc[i-1]; pl = df['Low'].iloc[i-1]
-        if bullish and cc > ph: return True, i
-        if not bullish and cc < pl: return True, i
+def find_entry(df, si, bull):
+    if df is None or si < 0:
+        return False, -1
+    for i in range(si + 1, len(df)):
+        if i < 1:
+            continue
+        cc = df['Close'].iloc[i]
+        if bull and cc > df['High'].iloc[i - 1]:
+            return True, i
+        if not bull and cc < df['Low'].iloc[i - 1]:
+            return True, i
     return False, -1
 
-def scan_symbol(name, yf_ticker, tpl):
+def scan_one(name, ticker, tpl):
     try:
-        ctx_df = fetch_ohlc(yf_ticker, tpl["ctx_arrow"], tpl["ctx_period"])
-        val_df = fetch_ohlc(yf_ticker, tpl["val"], tpl["val_period"])
-        entry_df = fetch_ohlc(yf_ticker, tpl["entry"], tpl["entry_period"])
-        if ctx_df is None or val_df is None or entry_df is None: return None
-        if len(ctx_df) < 10 or len(val_df) < 10 or len(entry_df) < (MENT_BARS_BACK + 20): return None
+        ctx = fetch(ticker, tpl["ctx_arrow"], tpl["ctx_period"])
+        val = fetch(ticker, tpl["val"], tpl["val_period"])
+        ent = fetch(ticker, tpl["entry"], tpl["entry_period"])
+        if ctx is None or val is None or ent is None:
+            return None
+        if len(ctx) < 10 or len(val) < 10 or len(ent) < MENT_BARS + 20:
+            return None
 
-        ca = check_arrow(ctx_df); ce = check_ema_state(ctx_df)
-        bull = (ca == "UP" and ce == "ACC"); bear = (ca == "DOWN" and ce == "DISS")
-        if not bull and not bear: return None
+        ca = arrow(ctx)
+        ce = ema_state(ctx)
+        bull = ca == "UP" and ce == "ACC"
+        bear = ca == "DOWN" and ce == "DISS"
+        if not bull and not bear:
+            return None
 
-        ve = check_ema_state(val_df)
-        if bull and ve != "ACC": return None
-        if bear and ve != "DISS": return None
+        ve = ema_state(val)
+        if bull and ve != "ACC":
+            return None
+        if bear and ve != "DISS":
+            return None
 
-        found, pline, pidx = search_pattern(entry_df, bull)
-        if not found or pline <= 0: return None
+        ok, pl, pi = find_pattern(ent, bull)
+        if not ok or pl <= 0:
+            return None
 
-        swept, sidx = search_sweep(entry_df, pline, bull, pidx)
-        if not swept: return None
+        ok2, si = find_sweep(ent, pl, bull, pi)
+        if not ok2:
+            return None
 
-        efound, eidx = search_entry(entry_df, sidx, bull)
-        if not efound: return None
+        ok3, ei = find_entry(ent, si, bull)
+        if not ok3:
+            return None
 
+        price = float(ent['Close'].iloc[-1])
         if bull:
-            prot = float(entry_df['Low'].iloc[:eidx+1].min())
-            price = float(entry_df['Close'].iloc[-1])
-            if price < prot: return None
+            prot = float(ent['Low'].iloc[:ei + 1].min())
+            if price < prot:
+                return None
         else:
-            prot = float(entry_df['High'].iloc[:eidx+1].max())
-            price = float(entry_df['Close'].iloc[-1])
-            if price > prot: return None
+            prot = float(ent['High'].iloc[:ei + 1].max())
+            if price > prot:
+                return None
 
-        mt = calc_ment_block(entry_df, MENT_BARS_BACK)
-        if bull and mt != 1: return None
-        if bear and mt != -1: return None
+        mt = ment(ent, MENT_BARS)
+        if bull and mt != 1:
+            return None
+        if bear and mt != -1:
+            return None
 
         d = 5 if price < 10 else (3 if price < 1000 else 2)
-        return {"symbol": name, "direction": "BUY" if bull else "SELL",
-                "ment": "BULL" if mt == 1 else "BEAR", "status": "READY",
-                "price": round(price, d), "protected_level": round(prot, d)}
+        return {
+            "symbol": name,
+            "direction": "BUY" if bull else "SELL",
+            "ment": "BULL" if mt == 1 else "BEAR",
+            "status": "READY",
+            "price": round(price, d),
+            "protected_level": round(prot, d),
+        }
     except:
         return None
 
 # ═══════════════════════════════════════════════════════════════
-# BACKGROUND SCANNER THREAD
+# BACKGROUND SCANNER
 # ═══════════════════════════════════════════════════════════════
-def scan_in_background(asset_class, template_name):
-    """Run scan in a separate thread — never blocks the web server"""
-    if is_scanning(asset_class, template_name):
-        return  # Already scanning
+def scan_bg(asset, template):
+    if is_busy(asset, template):
+        return
 
     def _run():
-        mark_scanning(asset_class, template_name)
-        symbols = SYMBOLS.get(asset_class, {})
-        tpl = TEMPLATES.get(template_name)
+        mark_busy(asset, template)
+        syms = SYMBOLS.get(asset, {})
+        tpl = TEMPLATES.get(template)
         if not tpl:
-            set_result(asset_class, template_name, {"error": "Invalid template", "signals": []})
+            set_res(asset, template, {"error": "Bad template", "signals": []})
             return
 
-        signals = []
-        scanned = 0
-        print(f"[SCAN] Starting {asset_class}/{template_name} ({len(symbols)} symbols)...")
+        sigs = []
+        count = 0
+        print(f"[SCAN] {asset}/{template} ({len(syms)} symbols)...")
 
-        for name, yf_ticker in symbols.items():
-            scanned += 1
+        for name, ticker in syms.items():
+            count += 1
             try:
-                result = scan_symbol(name, yf_ticker, tpl)
-                if result:
-                    signals.append(result)
-                    print(f"  ✓ {name} → {result['direction']}")
+                r = scan_one(name, ticker, tpl)
+                if r:
+                    sigs.append(r)
+                    print(f"  + {name} {r['direction']}")
             except:
                 pass
 
         data = {
             "scanner_version": "3.15-web",
-            "asset_class": asset_class,
-            "template": template_name,
+            "asset_class": asset,
+            "template": template,
             "timeframes": tpl["label"],
-            "total_symbols": len(symbols),
-            "symbols_scanned": scanned,
-            "qualifying_count": len(signals),
+            "total_symbols": len(syms),
+            "symbols_scanned": count,
+            "qualifying_count": len(sigs),
             "last_scan": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-            "signals": signals,
+            "signals": sigs,
         }
-        set_result(asset_class, template_name, data)
-        print(f"[SCAN] Done {asset_class}/{template_name}: {len(signals)} qualifying out of {scanned}")
+        set_res(asset, template, data)
+        print(f"[DONE] {asset}/{template}: {len(sigs)}/{count} qualifying")
 
-    t = threading.Thread(target=_run, daemon=True)
-    t.start()
+    threading.Thread(target=_run, daemon=True).start()
 
 # ═══════════════════════════════════════════════════════════════
 # API
@@ -309,36 +360,32 @@ def api_scan():
     template = request.args.get('template', 'Weekly')
     force = request.args.get('force', '')
 
-    # Force clear cache
     if force:
-        key = f"{asset}_{template}"
-        with store_lock:
-            scan_results.pop(key, None)
-            scan_status.pop(key, None)
+        with lock:
+            results.pop(f"{asset}_{template}", None)
+            status.pop(f"{asset}_{template}", None)
 
-    # Check if we have cached results
-    result = get_result(asset, template)
+    res = get_res(asset, template)
 
-    if result and not is_stale(asset, template):
-        # Return cached, trigger background refresh if getting old (>90s)
-        key = f"{asset}_{template}"
-        with store_lock:
-            st = scan_status.get(key, {})
-            age = time.time() - st.get("last_scan", 0)
-        if age > 90:
-            scan_in_background(asset, template)
-        return jsonify(result)
+    # Have fresh results
+    if res and not is_old(asset, template):
+        # Trigger background refresh if > 90s old
+        with lock:
+            ts = status.get(f"{asset}_{template}", {}).get("ts", 0)
+        if time.time() - ts > 90 and not is_busy(asset, template):
+            scan_bg(asset, template)
+        return jsonify(res)
 
-    # No cache or stale — start background scan
-    if not is_scanning(asset, template):
-        scan_in_background(asset, template)
+    # Start scan if not already running
+    if not is_busy(asset, template):
+        scan_bg(asset, template)
 
-    # If we have old results, return them while new scan runs
-    if result:
-        result["_note"] = "Refreshing in background..."
-        return jsonify(result)
+    # Return old results while scanning
+    if res:
+        res["_note"] = "Refreshing in background..."
+        return jsonify(res)
 
-    # No results at all yet — return scanning status
+    # Nothing yet
     return jsonify({
         "scanner_version": "3.15-web",
         "asset_class": asset,
@@ -348,25 +395,26 @@ def api_scan():
         "scanning": True,
         "last_scan": "Scanning now...",
         "signals": [],
-        "_note": "First scan in progress. Refresh in 30-60 seconds."
+        "_note": "First scan in progress. Results appear in 30-60 seconds."
     })
 
 @app.route('/api/symbols')
 def api_symbols():
     asset = request.args.get('asset', 'Forex&Metals')
-    return jsonify({"asset": asset, "symbols": list(SYMBOLS.get(asset, {}).keys()), "count": len(SYMBOLS.get(asset, {}))})
+    return jsonify({"asset": asset, "symbols": list(SYMBOLS.get(asset, {}).keys()),
+                    "count": len(SYMBOLS.get(asset, {}))})
 
 @app.route('/api/status')
 def api_status():
     counts = {k: len(v) for k, v in SYMBOLS.items()}
-    active = []
-    with store_lock:
-        for k, v in scan_status.items():
+    busy = []
+    with lock:
+        for k, v in status.items():
             if v.get("scanning"):
-                active.append(k)
-    return jsonify({"status": "running", "version": "3.15-web", "symbols": counts,
-                    "total": sum(counts.values()), "active_scans": active,
-                    "cached_results": len(scan_results)})
+                busy.append(k)
+    return jsonify({"status": "running", "version": "3.15-web-v4",
+                    "symbols": counts, "total": sum(counts.values()),
+                    "active_scans": busy, "cached": len(results)})
 
 @app.route('/')
 def index():
@@ -377,28 +425,12 @@ def static_files(path):
     return send_from_directory('static', path)
 
 # ═══════════════════════════════════════════════════════════════
-# STARTUP — pre-scan popular combinations
+# MAIN
 # ═══════════════════════════════════════════════════════════════
-def startup_scans():
-    """Pre-scan the most popular combinations on startup"""
-    time.sleep(5)  # Let the server start first
-    print("[STARTUP] Pre-scanning popular combinations...")
-    for tpl in ["Weekly", "Daily"]:
-        for asset in ["Forex&Metals", "Crypto", "Stocks"]:
-            scan_in_background(asset, tpl)
-            time.sleep(2)  # Stagger to avoid overwhelming yfinance
+total = sum(len(v) for v in SYMBOLS.values())
+print(f"NAZ OMIC Scanner v4 | {total} symbols | Ready")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5555))
-    total = sum(len(v) for v in SYMBOLS.values())
-    print(f"NAZ OMIC Scanner Web v3")
-    print(f"Forex&Metals: {len(SYMBOLS['Forex&Metals'])} | Crypto: {len(SYMBOLS['Crypto'])} | Stocks: {len(SYMBOLS['Stocks'])} | Total: {total}")
     print(f"http://localhost:{port}")
-    # Start background pre-scan
-    threading.Thread(target=startup_scans, daemon=True).start()
     app.run(host='0.0.0.0', port=port, debug=False)
-else:
-    # Running under gunicorn
-    total = sum(len(v) for v in SYMBOLS.values())
-    print(f"NAZ OMIC Scanner Web v3 | {total} symbols")
-    threading.Thread(target=startup_scans, daemon=True).start()
